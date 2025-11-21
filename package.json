@@ -4,9 +4,26 @@
   "main": "main.js",
   "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "start": "node main.js",
     "dev": "node --watch-path=./ main.js"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "adb-wrapper.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 90,
+        "functions": 95,
+        "lines": 95,
+        "statements": 95
+      }
+    }
   },
   "author": "",
   "license": "ISC",
@@ -16,6 +33,10 @@
     "body-parser": "^2.2.0",
     "dotenv": "^17.1.0",
     "express": "^5.1.0",
+    "luxon": "^3.7.2",
     "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
