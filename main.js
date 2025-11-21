@@ -36,10 +36,7 @@ logger.info('Starting main application...');
 
             try {
                 const domain = new URL(url).hostname;
-                const page = await currentContext.newPage();
-                await page.goto(url);
-                
-                const handler = WebsiteFactory.getHandler(domain, page);
+                const handler = WebsiteFactory.getHandler(domain);
 
                 if (handler) {
                     logger.info(`Using ${domain} handler to buy ${url}`);
@@ -212,16 +209,13 @@ logger.info('Starting main application...');
             logger.info(`Navigating to domain: ${domain} (URL: ${url})`);
 
             try {
-                const page = await currentContext.newPage();
-
                 res.json({
                     success: true,
                     message: `Purchase process initiated for ${item} on ${domain}`,
                     hasHandler: WebsiteFactory.hasHandler(domain)
                 });
 
-                await page.goto(item);
-                const handler = WebsiteFactory.getHandler(domain, page);
+                const handler = WebsiteFactory.getHandler(domain);
 
                 if (handler) {
                     logger.info(`Using ${domain} handler to buy ${item}`);

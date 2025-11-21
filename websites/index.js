@@ -7,10 +7,9 @@ class WebsiteFactory {
     /**
      * Get the appropriate handler for a website
      * @param {string} domain - The website domain
-     * @param {object} page - The Playwright page object
      * @returns {object} - Website handler instance
      */
-    static getHandler(domain, page) {
+    static getHandler(domain) {
         const normalizedDomain = domain.toLowerCase();
         logger.info(`Getting handler for domain: ${normalizedDomain}`);
 
@@ -19,19 +18,19 @@ class WebsiteFactory {
             case 'aliexpress':
             case 'www.aliexpress.com':
                 const AliExpressHandler = require('./aliexpress');
-                return new AliExpressHandler(page);
+                return new AliExpressHandler();
 
             case 'amazon':
             case 'www.amazon.com':
                 const AmazonHandler = require('./amazon');
-                return new AmazonHandler(page);
+                return new AmazonHandler();
                 
             case 'mercadolivre':
             case 'mercadolibre':
             case 'www.mercadolivre.com.br':
             case 'www.mercadolibre.com':
                 const MercadoLivreHandler = require('./mercadolivre');
-                return new MercadoLivreHandler(page);
+                return new MercadoLivreHandler();
 
             default:
                 logger.warn(`No handler found for domain: ${normalizedDomain}`);
