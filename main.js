@@ -41,7 +41,7 @@ logger.info('Starting main application...');
                 if (handler) {
                     logger.info(`Using ${domain} handler to buy ${url}`);
                     const success = await handler.buyItem(url);
-                    
+
                     if (success) {
                         logger.info(`Successfully processed purchase for ${url}`);
                         urls[index].status = 'purchased';
@@ -64,9 +64,9 @@ logger.info('Starting main application...');
             if (activeTimers[index]) {
                 clearTimeout(activeTimers[index]);
             }
-            
+
             logger.info(`Scheduling purchase for URL index ${index} in ${Math.ceil(delayMs / 60000)} minutes`);
-            
+
             activeTimers[index] = setTimeout(async () => {
                 await triggerPurchase(index);
                 delete activeTimers[index];
