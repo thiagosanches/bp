@@ -149,3 +149,4 @@ vite.config.ts.timestamp-*
 user-data
 nohup.out
 .env
+screenshots/
