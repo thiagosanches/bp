@@ -136,7 +136,7 @@ logger.info('Starting main application...');
                     logger.info(`URL added with ${randomMinutes} minute timer: ${url}`);
                     res.json({
                         success: true,
-                        message: `URL added! Will auto-buy in ${randomMinutes} minutes`,
+                        message: 'URL added successfully',
                         item: item,
                         index: index
                     });
