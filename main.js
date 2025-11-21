@@ -100,6 +100,17 @@ logger.info('Starting main application...');
             try {
                 new URL(url); // Validate URL format
 
+                // Check if URL already exists in the list
+                const existingIndex = urls.findIndex(item => item.url === url);
+                if (existingIndex !== -1) {
+                    return res.json({
+                        success: true,
+                        message: 'URL already in list',
+                        item: urls[existingIndex],
+                        index: existingIndex
+                    });
+                }
+
                 const autoBuyEnabled = process.env.AUTO_BUY_ENABLED === 'true';
                 const minDelay = parseInt(process.env.AUTO_BUY_MIN_DELAY) || 3;
                 const maxDelay = parseInt(process.env.AUTO_BUY_MAX_DELAY) || 11;
