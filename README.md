@@ -47,8 +47,6 @@ cd buypal
 npm install
 cp .env.example .env  # Configure with your credentials
 
-# Run the application
-google-chrome --remote-debugging-port=9222  --user-data-dir=user-data # In terminal 1
 npm start  # In terminal 2
 
 # Make a purchase
