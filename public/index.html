@@ -46,7 +46,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            word-break: break-all;
+            gap: 12px;
         }
 
         .brand-logo {
@@ -113,6 +113,17 @@
                         </button>
                     </div>
                 </div>
+                <div class="mb-3">
+                    <label for="timerInput" class="form-label">Schedule Purchase (Optional):</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-clock"></i></span>
+                        <input type="datetime-local" class="form-control" id="timerInput">
+                        <button class="btn btn-outline-secondary" id="clearTimer">
+                            <i class="bi bi-x-lg"></i> Clear
+                        </button>
+                    </div>
+                    <small class="form-text text-muted">Leave empty to add without scheduling</small>
+                </div>
             </div>
         </div>
 
@@ -136,8 +147,15 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Initialize or retrieve stored URLs
+            // Initialize or retrieve stored URLs with timers
             let urls = JSON.parse(localStorage.getItem('buypalUrls')) || [];
+            
+            // Check for scheduled purchases on page load
+            checkScheduledPurchases();
+            
+            // Check every minute for scheduled purchases
+            setInterval(checkScheduledPurchases, 60000);
+            
             updateUrlList();
 
             // Enter key on URL input
@@ -147,10 +165,17 @@
                 }
             });
 
+            // Clear timer button
+            document.getElementById('clearTimer').addEventListener('click', function () {
+                document.getElementById('timerInput').value = '';
+            });
+
             // Add URL to list
             document.getElementById('addUrl').addEventListener('click', function () {
                 const urlInput = document.getElementById('urlInput');
+                const timerInput = document.getElementById('timerInput');
                 const url = urlInput.value.trim();
+                const scheduledTime = timerInput.value;
 
                 if (!url) {
                     showStatus('Please enter a valid URL', 'danger');
@@ -159,11 +184,25 @@
 
                 try {
                     new URL(url); // Validate URL format
-                    urls.push(url);
+                    
+                    const item = {
+                        url: url,
+                        scheduledTime: scheduledTime || null,
+                        status: scheduledTime ? 'scheduled' : 'ready'
+                    };
+                    
+                    urls.push(item);
                     localStorage.setItem('buypalUrls', JSON.stringify(urls));
                     urlInput.value = '';
+                    timerInput.value = '';
                     updateUrlList();
-                    showStatus('URL added successfully!', 'success');
+                    
+                    if (scheduledTime) {
+                        const schedTime = new Date(scheduledTime);
+                        showStatus(`URL added! Scheduled for ${schedTime.toLocaleString()}`, 'success');
+                    } else {
+                        showStatus('URL added successfully!', 'success');
+                    }
                 } catch (e) {
                     showStatus('Please enter a valid URL', 'danger');
                 }
@@ -183,8 +222,13 @@
                     return;
                 }
 
-                urls.forEach((url, index) => {
+                urls.forEach((item, index) => {
                     try {
+                        // Handle both old format (string) and new format (object)
+                        const url = typeof item === 'string' ? item : item.url;
+                        const scheduledTime = typeof item === 'object' ? item.scheduledTime : null;
+                        const status = typeof item === 'object' ? item.status : 'ready';
+                        
                         const urlObj = new URL(url);
 
                         const li = document.createElement('li');
@@ -193,6 +237,8 @@
                         // Create URL display with favicon
                         const itemContent = document.createElement('div');
                         itemContent.className = 'd-flex flex-column flex-grow-1';
+                        itemContent.style.minWidth = '0';
+                        itemContent.style.overflow = 'hidden';
 
                         const hostLine = document.createElement('div');
                         hostLine.className = 'd-flex align-items-center mb-1';
@@ -214,13 +260,16 @@
                         const urlText = document.createElement('div');
                         urlText.textContent = url;
                         urlText.className = 'text-truncate small';
+                        urlText.style.wordBreak = 'break-word';
+                        urlText.style.overflowWrap = 'break-word';
                         itemContent.appendChild(urlText);
 
                         li.appendChild(itemContent);
 
                         // Create delete button
                         const deleteBtn = document.createElement('button');
-                        deleteBtn.className = 'btn btn-sm btn-outline-danger ms-2';
+                        deleteBtn.className = 'btn btn-sm btn-outline-danger';
+                        deleteBtn.style.flexShrink = '0';
                         deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
                         deleteBtn.title = 'Remove from list';
                         deleteBtn.addEventListener('click', function () {
