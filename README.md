@@ -1,6 +1,9 @@
 # BuyPal
 
-An automation tool for stress-free online shopping experiences.
+Experience stress-free online shopping with our automation tool. Simply connect your Android device to the USB port, and let BuyPal take care of everything else!
+
+>[!TIP]
+>I initially used a playwright approach, which was functional but had the drawback of sessions expiring too quickly and requiring excessive maintenance. Therefore, I switched to using ADB to control a real Android device, and this method has proven to be much more reliable for my needs.
 
 ## Overview
 
@@ -16,7 +19,7 @@ BuyPal automates online purchases to reduce anxiety and decision fatigue. It han
 - Streamlines the purchase process from start to finish
 
 > [!TIP]
-> To use this tool, you'll need to log in manually and complete any additional security steps, such as MFA, validation, and facial recognition. This tool only handles the buying process.
+> You just need to know where to tap on the screen and follow the necessary steps. In the developer settings, you can enable the display of the X and Y coordinates to identify where to click. Take note of these coordinates and implement them in your code.
 
 ### Web Interface
 
@@ -30,7 +33,7 @@ To access the web interface, simply navigate to http://localhost:3000 after star
 
 ### Supported Platforms
 
-- AliExpress
+- AliExpress (NEEDS UPDATE)
 - MercadoLivre
 
 ## Quick Start

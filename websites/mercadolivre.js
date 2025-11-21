@@ -1,5 +1,6 @@
 const logger = require('../utils/logger');
-const actions = require('../utils/actions');
+const ADBWrapper = require('./adb-wrapper');
+const { DateTime } = require('luxon');
 
 /**
  * MercadoLivre website handler
@@ -21,52 +22,42 @@ class MercadoLivreHandler {
      */
     async buyItem(item) {
         logger.info(`Attempting to buy item: ${item} on MercadoLivre`);
+        const adb = new ADBWrapper();
 
         try {
-            await actions.try(async () => await this.page.getByText('Comprar agora', { timeout: 5000 }).click(), 'Clicar em comprar agora');
+            await adb.autoConnect();
+            logger.info('🌐 Opening MercadoLivre URL...', item);
+            await adb.openUrl(item);
+            await adb.wait(5000);
 
-            logger.info('Waiting for UI to update, just if there is a popup');
-            await this.page.waitForTimeout(5000);
+            await adb.tap(1, 1);
+            await adb.swipe(500, 1000, 500, 200, 300);
+            await adb.wait(5000);
 
-            await actions.try(async () => await this.page.getByText('Continuar', { timeout: 5000 }).click(), 'Clicar no botão Continuar');
+            await adb.tap(500, 1011);
+            await adb.wait(5000);
 
-            await this.page.waitForTimeout(5000);
-            await actions.try(async () => await this.page.getByText('Continuar', { timeout: 5000 }).click(), 'Clinar no segundo botão Continuar');
+            await adb.tap(500, 550);
+            await adb.wait(5000);
 
-            await this.page.waitForTimeout(5000);
-            await actions.scrollToBottom(this.page, 'Scroll to bottom before selecting payment method');
+            await adb.tap(500, 2050);
+            await adb.wait(8000);
 
-            await actions.try(async () => await this.page.getByText(process.env.MERCADOLIVRE_CC_ENDING_NUMBER, { timeout: 5000 }).click(), 'Escolher o cartão de crédito');
+            await adb.tap(500, 1080);
+            await adb.wait(3000);
 
-            await this.page.waitForTimeout(5000);
-            await actions.try(async () => await this.page.getByRole('button').click(), 'Clicar no botão Continuar após escolher o cartão de crédito');
-            await this.page.waitForTimeout(5000);
-            
-            await actions.try(async () => await this.page.getByRole('listitem').filter({ hasText: '1x' }).first().click(), 'Selecionar 1x de parcelamento');
-            
-            await this.page.waitForTimeout(5000);
-            await actions.try(async () => await this.page.getByTestId('continue_button', { timeout: 5000 }).click(), 'Clicar no botão Continuar');
-            
-            await this.page.waitForTimeout(2000);
-            await actions.try(async () => {
-                const securityCodeFrame = this.page.locator('iframe[name="securityCode"]');
-                const innerFrame = await securityCodeFrame.contentFrame();
-                await innerFrame.locator('#securityCode').fill(process.env.MERCADOLIVRE_CVV);
-            }, 'Preencher código de segurança (CVV)');
+            await adb.tap(500, 640);
+            await adb.wait(3000);
 
-            await this.page.waitForTimeout(5000);
-            await actions.try(async () => await this.page.locator('button[type=submit]', { timeout: 5000 }).click(), 'Clicar no último botão Continuar');
-            
-            await this.page.waitForTimeout(5000);
-            await actions.try(async () => await this.page.getByTestId('review_price_box_confirm_button', { timeout: 5000, exact: true }).click(), 'Clicar no botão Confirmar a compra');
-
-            logger.info(`Successfully initiated purchase for: ${item}`);
-            return true;
-
-        } catch (error) {
-            logger.error(`Error buying item: ${error.message}`);
-            return false;
+            await adb.tap(500, 850);
+            await adb.wait(8000);
+            await adb.takeScreenshot(`mercadolivre-item-${DateTime.now().toMillis()}.png`);
+            logger.info('Item purchase process completed on MercadoLivre');
         }
+        catch (error) {
+            logger.error(`Failed to buy item: ${error.message}`);
+        }
+
     }
 }
 

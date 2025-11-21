@@ -98,7 +98,7 @@ class ADBWrapper extends EventEmitter {
                 timeout: this.timeout,
                 maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large outputs
             });
-            
+
             if (stderr && !stderr.includes('WARNING')) {
                 this.emit('warning', stderr);
             }
@@ -233,7 +233,7 @@ class ADBWrapper extends EventEmitter {
         validateCoordinate(x1, y1);
         validateCoordinate(x2, y2);
         validatePositiveNumber(duration, 'duration');
-        
+
         const cmd = `input swipe ${Math.floor(x1)} ${Math.floor(y1)} ${Math.floor(x2)} ${Math.floor(y2)} ${Math.floor(duration)}`;
         return this.executeShell(cmd);
     }
@@ -405,7 +405,7 @@ class ADBWrapper extends EventEmitter {
         try {
             await this.executeShell(`screencap -p ${remotePath}`);
             await this.executeCommand(`pull ${remotePath} ${localPath}`);
-            
+
             // Clean up remote file
             if (cleanup) {
                 await this.executeShell(`rm ${remotePath}`).catch(() => {
@@ -429,7 +429,7 @@ class ADBWrapper extends EventEmitter {
         if (!remotePath || !localPath) {
             throw new Error('Both remotePath and localPath are required');
         }
-        
+
         // Ensure directory exists
         await fs.mkdir(path.dirname(localPath), { recursive: true });
         await this.executeCommand(`pull ${sanitizeShellArg(remotePath)} ${sanitizeShellArg(localPath)}`);
@@ -446,7 +446,7 @@ class ADBWrapper extends EventEmitter {
         if (!localPath || !remotePath) {
             throw new Error('Both localPath and remotePath are required');
         }
-        
+
         // Check if file exists
         await fs.access(localPath);
         return this.executeCommand(`push ${sanitizeShellArg(localPath)} ${sanitizeShellArg(remotePath)}`);

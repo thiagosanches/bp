@@ -1,6 +1,5 @@
 require('dotenv').config();
 
-const { chromium } = require('@playwright/test');
 const bodyParser = require('body-parser');
 const express = require('express');
 const logger = require('./utils/logger');
@@ -14,14 +13,10 @@ app.use(express.static('public'));
 const port = 3000;
 
 logger.info('Starting main application...');
-logger.info('Connecting browser over CDP...');
 
 (async () => {
     try {
-        const browser = await chromium.connectOverCDP('http://localhost:9222');
-        logger.info('Browser connected successfully.');
-        logger.info(`Browser contexts available: ${browser.contexts().length}`);
-        const currentContext = browser.contexts()[0];
+        logger.info('BP application initializing...');
 
         app.get('/buy/:item', async function (req, res) {
             const item = req.params.item;
