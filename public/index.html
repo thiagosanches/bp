@@ -113,17 +113,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label for="timerInput" class="form-label">Schedule Purchase (Optional):</label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-clock"></i></span>
-                        <input type="datetime-local" class="form-control" id="timerInput">
-                        <button class="btn btn-outline-secondary" id="clearTimer">
-                            <i class="bi bi-x-lg"></i> Clear
-                        </button>
-                    </div>
-                    <small class="form-text text-muted">Leave empty to add without scheduling</small>
-                </div>
+
             </div>
         </div>
 
@@ -147,16 +137,13 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Initialize or retrieve stored URLs with timers
-            let urls = JSON.parse(localStorage.getItem('buypalUrls')) || [];
+            let urls = [];
             
-            // Check for scheduled purchases on page load
-            checkScheduledPurchases();
+            // Load URLs from server
+            loadUrls();
             
-            // Check every minute for scheduled purchases
-            setInterval(checkScheduledPurchases, 60000);
-            
-            updateUrlList();
+            // Refresh URL list every 30 seconds to show updated status
+            setInterval(loadUrls, 30000);
 
             // Enter key on URL input
             document.getElementById('urlInput').addEventListener('keypress', function (event) {
@@ -165,48 +152,49 @@
                 }
             });
 
-            // Clear timer button
-            document.getElementById('clearTimer').addEventListener('click', function () {
-                document.getElementById('timerInput').value = '';
-            });
-
             // Add URL to list
             document.getElementById('addUrl').addEventListener('click', function () {
                 const urlInput = document.getElementById('urlInput');
-                const timerInput = document.getElementById('timerInput');
                 const url = urlInput.value.trim();
-                const scheduledTime = timerInput.value;
 
                 if (!url) {
                     showStatus('Please enter a valid URL', 'danger');
                     return;
                 }
 
-                try {
-                    new URL(url); // Validate URL format
-                    
-                    const item = {
-                        url: url,
-                        scheduledTime: scheduledTime || null,
-                        status: scheduledTime ? 'scheduled' : 'ready'
-                    };
-                    
-                    urls.push(item);
-                    localStorage.setItem('buypalUrls', JSON.stringify(urls));
-                    urlInput.value = '';
-                    timerInput.value = '';
-                    updateUrlList();
-                    
-                    if (scheduledTime) {
-                        const schedTime = new Date(scheduledTime);
-                        showStatus(`URL added! Scheduled for ${schedTime.toLocaleString()}`, 'success');
+                // Send to server
+                fetch('/urls', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showStatus(data.message, 'success');
+                        urlInput.value = '';
+                        loadUrls();
                     } else {
-                        showStatus('URL added successfully!', 'success');
+                        showStatus(data.message, 'danger');
                     }
-                } catch (e) {
-                    showStatus('Please enter a valid URL', 'danger');
-                }
+                })
+                .catch(error => {
+                    showStatus(`Error: ${error.message}`, 'danger');
+                });
             });
+
+            // Load URLs from server
+            function loadUrls() {
+                fetch('/urls')
+                    .then(response => response.json())
+                    .then(data => {
+                        urls = data;
+                        updateUrlList();
+                    })
+                    .catch(error => {
+                        console.error('Failed to load URLs:', error);
+                    });
+            }
 
             // Helper function to update the URL list in the UI
             function updateUrlList() {
@@ -224,10 +212,10 @@
 
                 urls.forEach((item, index) => {
                     try {
-                        // Handle both old format (string) and new format (object)
-                        const url = typeof item === 'string' ? item : item.url;
-                        const scheduledTime = typeof item === 'object' ? item.scheduledTime : null;
-                        const status = typeof item === 'object' ? item.status : 'ready';
+                        const url = item.url;
+                        const triggerTime = item.triggerTime;
+                        const delayMinutes = item.delayMinutes;
+                        const status = item.status;
                         
                         const urlObj = new URL(url);
 
@@ -264,6 +252,24 @@
                         urlText.style.overflowWrap = 'break-word';
                         itemContent.appendChild(urlText);
 
+                        // Show status badge if exists
+                        if (status && status !== 'ready' && status !== 'pending') {
+                            const statusInfo = document.createElement('div');
+                            statusInfo.className = 'small mt-1';
+                            
+                            let statusBadge = '';
+                            if (status === 'purchased') {
+                                statusBadge = '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Purchased</span>';
+                            } else if (status === 'failed' || status === 'error') {
+                                statusBadge = '<span class="badge bg-danger"><i class="bi bi-x-circle"></i> Failed</span>';
+                            } else if (status === 'no-handler') {
+                                statusBadge = '<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> No Handler</span>';
+                            }
+                            
+                            statusInfo.innerHTML = statusBadge;
+                            itemContent.appendChild(statusInfo);
+                        }
+
                         li.appendChild(itemContent);
 
                         // Create delete button
@@ -273,11 +279,45 @@
                         deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
                         deleteBtn.title = 'Remove from list';
                         deleteBtn.addEventListener('click', function () {
-                            urls.splice(index, 1);
-                            localStorage.setItem('buypalUrls', JSON.stringify(urls));
-                            updateUrlList();
-                            showStatus('Item removed from list', 'info');
+                            fetch(`/urls/${index}`, { method: 'DELETE' })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        showStatus(data.message, 'info');
+                                        loadUrls();
+                                    } else {
+                                        showStatus(data.message, 'danger');
+                                    }
+                                })
+                                .catch(error => {
+                                    showStatus(`Error: ${error.message}`, 'danger');
+                                });
                         });
+
+                        // Add buy now button for pending items
+                        if (triggerTime && status !== 'purchased' && status !== 'error' && status !== 'failed') {
+                            const buyBtn = document.createElement('button');
+                            buyBtn.className = 'btn btn-sm btn-success me-2';
+                            buyBtn.style.flexShrink = '0';
+                            buyBtn.innerHTML = '<i class="bi bi-cart-check"></i>';
+                            buyBtn.title = 'Buy now (skip timer)';
+                            buyBtn.addEventListener('click', function () {
+                                fetch(`/urls/${index}/buy`, { method: 'POST' })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            showStatus(data.message, 'info');
+                                            loadUrls();
+                                        } else {
+                                            showStatus(data.message, 'danger');
+                                        }
+                                    })
+                                    .catch(error => {
+                                        showStatus(`Error: ${error.message}`, 'danger');
+                                    });
+                            });
+                            li.appendChild(buyBtn);
+                        }
 
                         li.appendChild(deleteBtn);
                         urlList.appendChild(li);
