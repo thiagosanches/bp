@@ -1,5 +1,5 @@
 const logger = require('../utils/logger');
-const ADBWrapper = require('./adb-wrapper');
+const ADBWrapper = require('../adb-wrapper');
 const { DateTime } = require('luxon');
 
 /**
