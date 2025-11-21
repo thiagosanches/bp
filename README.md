@@ -19,14 +19,14 @@ BuyPal automates online purchases to reduce anxiety and decision fatigue. It han
 - Streamlines the purchase process from start to finish
 
 > [!TIP]
-> You just need to know where to tap on the screen and follow the necessary steps. In the developer settings, you can enable the display of the X and Y coordinates to identify where to click. Take note of these coordinates and implement them in your code.
+> You simply need to know where to tap on the screen to navigate through the necessary steps for each shopping application. In the developer settings, you can enable the display of the X and Y coordinates to identify the appropriate clicking locations. Make sure to note these coordinates and incorporate them into your code.
 
 ### Web Interface
 
 BuyPal includes a user-friendly web interface that allows you to:
 
 1. Create a list of products you're considering
-2. Let BuyPal randomly select one item from your list
+2. Let BuyPal randomly select one item from your list after a set timer
 3. Automatically complete the purchase process
 
 To access the web interface, simply navigate to http://localhost:3000 after starting the server.
@@ -47,7 +47,7 @@ cd buypal
 npm install
 cp .env.example .env  # Configure with your credentials
 
-npm start  # In terminal 2
+npm start
 
 # Make a purchase
 curl http://localhost:3000/buy/[domain]/[encoded-product-url]
