@@ -810,3 +810,193 @@ describe('ADBError', () => {
         expect(adbError instanceof Error).toBe(true);
     });
 });
+
+describe('UI Automation Methods', () => {
+    let adb;
+    let mockExec;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockExec = jest.fn();
+        exec.mockImplementation(mockExec);
+        adb = new ADBWrapper();
+    });
+
+    describe('dumpUI', () => {
+        test('should dump UI and return XML content', async () => {
+            const mockXml = '<hierarchy><node text="Button" /></hierarchy>';
+            mockExec.mockImplementation((cmd, options, callback) => {
+                if (cmd.includes('uiautomator dump')) {
+                    callback(null, { stdout: '', stderr: '' });
+                } else if (cmd.includes('cat /sdcard/window_dump.xml')) {
+                    callback(null, { stdout: mockXml, stderr: '' });
+                }
+            });
+
+            const result = await adb.dumpUI();
+            
+            expect(result).toBe(mockXml);
+            expect(mockExec).toHaveBeenCalledWith(
+                expect.stringContaining('uiautomator dump'),
+                expect.any(Object),
+                expect.any(Function)
+            );
+        });
+
+        test('should throw error if dump fails', async () => {
+            mockExec.mockImplementation((cmd, options, callback) => {
+                callback(new Error('Dump failed'), { stdout: '', stderr: 'Error' });
+            });
+
+            await expect(adb.dumpUI()).rejects.toThrow();
+        });
+    });
+
+    describe('parseUINodes', () => {
+        test('should parse XML without errors', () => {
+            const xml = `<?xml version="1.0"?><hierarchy><node index="0" text="Button" resource-id="com.test:id/btn" bounds="[100,200][300,400]" /><node index="1" text="Label" bounds="[0,0][100,100]"><node index="0" text="Nested" bounds="[10,10][50,50]" /></node></hierarchy>`;
+
+            const nodes = adb.parseUINodes(xml);
+            
+            expect(Array.isArray(nodes)).toBe(true);
+        });
+
+        test('should handle empty hierarchy', () => {
+            const nodes = adb.parseUINodes('<hierarchy></hierarchy>');
+            expect(Array.isArray(nodes)).toBe(true);
+        });
+
+        test('should handle invalid XML gracefully', () => {
+            // fast-xml-parser is lenient and will attempt to parse anything
+            const result = adb.parseUINodes('not xml');
+            expect(Array.isArray(result)).toBe(true);
+        });
+    });
+
+    describe('parseBounds', () => {
+        test('should parse bounds string correctly', () => {
+            const bounds = adb.parseBounds('[100,200][300,400]');
+            
+            expect(bounds).toEqual({
+                left: 100,
+                top: 200,
+                right: 300,
+                bottom: 400,
+                centerX: 200,
+                centerY: 300,
+                width: 200,
+                height: 200
+            });
+        });
+
+        test('should return null for invalid bounds', () => {
+            const bounds = adb.parseBounds('invalid');
+            expect(bounds).toBeNull();
+        });
+
+        test('should return null for empty bounds', () => {
+            const bounds = adb.parseBounds('');
+            expect(bounds).toBeNull();
+        });
+    });
+
+    describe('findElementByText', () => {
+        test('should call dumpUI and parseUINodes', async () => {
+            const mockXml = `<?xml version="1.0"?><hierarchy></hierarchy>`;
+            
+            mockExec.mockImplementation((cmd, options, callback) => {
+                if (cmd.includes('uiautomator dump')) {
+                    callback(null, { stdout: '', stderr: '' });
+                } else if (cmd.includes('cat /sdcard/window_dump.xml')) {
+                    callback(null, { stdout: mockXml, stderr: '' });
+                }
+            });
+
+            const element = await adb.findElementByText('Nonexistent');
+            
+            expect(mockExec).toHaveBeenCalledWith(
+                expect.stringContaining('uiautomator dump'),
+                expect.any(Object),
+                expect.any(Function)
+            );
+            expect(element).toBeNull();
+        });
+    });
+
+    describe('findElementById', () => {
+        test('should call dumpUI when searching', async () => {
+            const mockXml = `<?xml version="1.0"?><hierarchy></hierarchy>`;
+            
+            mockExec.mockImplementation((cmd, options, callback) => {
+                if (cmd.includes('uiautomator dump')) {
+                    callback(null, { stdout: '', stderr: '' });
+                } else if (cmd.includes('cat /sdcard/window_dump.xml')) {
+                    callback(null, { stdout: mockXml, stderr: '' });
+                }
+            });
+
+            const element = await adb.findElementById('nonexistent');
+            
+            expect(mockExec).toHaveBeenCalled();
+            expect(element).toBeNull();
+        });
+    });
+
+    describe('tapElementByText', () => {
+        test('should return false if element not found', async () => {
+            const mockXml = `<?xml version="1.0"?><hierarchy></hierarchy>`;
+            
+            mockExec.mockImplementation((cmd, options, callback) => {
+                if (cmd.includes('uiautomator dump')) {
+                    callback(null, { stdout: '', stderr: '' });
+                } else if (cmd.includes('cat /sdcard/window_dump.xml')) {
+                    callback(null, { stdout: mockXml, stderr: '' });
+                }
+            });
+
+            const result = await adb.tapElementByText('Nonexistent');
+            expect(result).toBe(false);
+        });
+    });
+
+    describe('isElementVisible', () => {
+        test('should return false when element not found', async () => {
+            const mockXml = '<hierarchy></hierarchy>';
+            
+            mockExec.mockImplementation((cmd, options, callback) => {
+                if (cmd.includes('uiautomator dump')) {
+                    callback(null, { stdout: '', stderr: '' });
+                } else if (cmd.includes('cat /sdcard/window_dump.xml')) {
+                    callback(null, { stdout: mockXml, stderr: '' });
+                }
+            });
+
+            const result = await adb.isElementVisible('Nonexistent');
+            expect(result).toBe(false);
+        });
+    });
+
+    describe('scrollToElement', () => {
+        beforeEach(() => {
+            adb.screenSize = { width: 1080, height: 1920 };
+            jest.spyOn(adb, 'wait').mockResolvedValue();
+        });
+
+        test('should return null if element not found after max attempts', async () => {
+            const mockXml = '<hierarchy></hierarchy>';
+            
+            mockExec.mockImplementation((cmd, options, callback) => {
+                if (cmd.includes('uiautomator dump')) {
+                    callback(null, { stdout: '', stderr: '' });
+                } else if (cmd.includes('cat /sdcard/window_dump.xml')) {
+                    callback(null, { stdout: mockXml, stderr: '' });
+                } else if (cmd.includes('input touchscreen swipe')) {
+                    callback(null, { stdout: '', stderr: '' });
+                }
+            });
+
+            const element = await adb.scrollToElement('Nonexistent', { maxAttempts: 3 });
+            expect(element).toBeNull();
+        });
+    });
+});

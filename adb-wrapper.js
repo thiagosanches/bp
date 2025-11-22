@@ -548,9 +548,8 @@ class ADBWrapper extends EventEmitter {
                         extractNodes(obj.node);
                     }
                 }
-            };
-
-            extractNodes(result);
+            };            
+            if (result.hierarchy) extractNodes(result.hierarchy);
             return nodes;
         } catch (error) {
             throw new Error(`Failed to parse UI XML: ${error.message}`);
@@ -589,6 +588,7 @@ class ADBWrapper extends EventEmitter {
         const { exact = false, caseInsensitive = true } = options;
         const xml = await this.dumpUI();
         const nodes = this.parseUINodes(xml);
+        console.log('xml', nodes);
         const searchText = caseInsensitive ? text.toLowerCase() : text;
 
         for (const node of nodes) {

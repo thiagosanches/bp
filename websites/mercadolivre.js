@@ -43,7 +43,7 @@ class MercadoLivreHandler {
             logger.info('Looking for Buy button...');
             const buyButton = await adb.scrollToElement('Comprar agora', {
                 maxAttempts: 5,
-                scrollDuration: 300
+                scrollDuration: 1000
             });
 
             if (!buyButton) {
