@@ -86,7 +86,7 @@ class MercadoLivreHandler {
                 const insuranceButton = await adb.findElementByText('Adicionar', { caseInsensitive: false });
                 logger.info(`Tapping Add Insurance button at (${insuranceButton.bounds.centerX}, ${insuranceButton.bounds.centerY})`);
                 await adb.tap(insuranceButton.bounds.centerX, insuranceButton.bounds.centerY);
-                await adb.wait(2000);
+                await adb.wait(5000);
             } else {
                 logger.info('No insurance option found');
             }
