@@ -29,6 +29,7 @@ class WebsiteFactory {
             case 'mercadolibre':
             case 'www.mercadolivre.com.br':
             case 'www.mercadolibre.com':
+            case 'produto.mercadolivre.com.br':
                 const MercadoLivreHandler = require('./mercadolivre');
                 return new MercadoLivreHandler();
 

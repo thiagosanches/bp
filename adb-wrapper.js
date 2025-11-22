@@ -234,7 +234,7 @@ class ADBWrapper extends EventEmitter {
         validateCoordinate(x2, y2);
         validatePositiveNumber(duration, 'duration');
 
-        const cmd = `input swipe ${Math.floor(x1)} ${Math.floor(y1)} ${Math.floor(x2)} ${Math.floor(y2)} ${Math.floor(duration)}`;
+        const cmd = `input touchscreen swipe ${Math.floor(x1)} ${Math.floor(y1)} ${Math.floor(x2)} ${Math.floor(y2)} ${Math.floor(duration)}`;
         return this.executeShell(cmd);
     }
 
