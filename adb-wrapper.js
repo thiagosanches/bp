@@ -588,7 +588,6 @@ class ADBWrapper extends EventEmitter {
         const { exact = false, caseInsensitive = true } = options;
         const xml = await this.dumpUI();
         const nodes = this.parseUINodes(xml);
-        console.log('xml', nodes);
         const searchText = caseInsensitive ? text.toLowerCase() : text;
 
         for (const node of nodes) {
