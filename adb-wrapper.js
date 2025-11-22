@@ -652,6 +652,34 @@ class ADBWrapper extends EventEmitter {
     }
 
     /**
+     * Find all elements matching text pattern
+     * @param {string} text - Text to search for (can be partial)
+     * @param {Object} options - Search options
+     * @returns {Promise<Array>} Array of matching elements
+     */
+    async findAllElementsByText(text, options = {}) {
+        const { exact = false, caseInsensitive = true } = options;
+        const xml = await this.dumpUI();
+        const nodes = this.parseUINodes(xml);
+        const searchText = caseInsensitive ? text.toLowerCase() : text;
+        const matches = [];
+
+        for (const node of nodes) {
+            const nodeText = node.text || node['content-desc'] || '';
+            const compareText = caseInsensitive ? nodeText.toLowerCase() : nodeText;
+            const isMatch = exact ? compareText === searchText : compareText.includes(searchText);
+
+            if (isMatch && node.bounds) {
+                const bounds = this.parseBounds(node.bounds);
+                if (bounds) {
+                    matches.push({ text: nodeText, bounds, node });
+                }
+            }
+        }
+        return matches;
+    }
+
+    /**
      * Scroll until element with text is visible (with while-like loop)
      * @param {string} text - Text to search for
      * @param {Object} options - Options

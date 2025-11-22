@@ -39,6 +39,22 @@ class MercadoLivreHandler {
             await adb.tap(540, 100);
             await adb.wait(5000);
 
+            // Try to select 127V or 127/220V voltage if available
+            logger.info('Checking for voltage option (127V/127-220V)...');
+            let voltageOption = await adb.findElementByText('127/220', { caseInsensitive: true });
+            
+            if (!voltageOption) {
+                voltageOption = await adb.findElementByText('127', { caseInsensitive: true });
+            }
+
+            if (voltageOption) {
+                logger.info(`Found voltage option at (${voltageOption.bounds.centerX}, ${voltageOption.bounds.centerY})`);
+                await adb.tap(voltageOption.bounds.centerX, voltageOption.bounds.centerY);
+                await adb.wait(2000);
+            } else {
+                logger.info('No voltage selection needed or found');
+            }
+
             // Find and scroll to the Buy button using UI automation
             logger.info('Looking for Buy button...');
             const buyButton = await adb.scrollToElement('Comprar agora', {
