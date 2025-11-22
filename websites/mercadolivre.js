@@ -35,15 +35,28 @@ class MercadoLivreHandler {
             await adb.openUrl(item);
             await adb.wait(20000);
 
+            // Close any popup/modal
             await adb.tap(540, 100);
-            await adb.wait(11000);
+            await adb.wait(5000);
 
-            logger.info('Scrolling down to put button in view...');
-            await adb.swipe(540, 1700, 540, 1000);
-            await adb.wait(11000);
+            // Find and scroll to the Buy button using UI automation
+            logger.info('Looking for Buy button...');
+            const buyButton = await adb.scrollToElement('Comprar agora', {
+                maxAttempts: 5,
+                scrollDuration: 300
+            });
 
+            if (!buyButton) {
+                logger.error('Could not find Buy button after scrolling');
+                throw new Error('Buy button not found');
+            }
+
+            logger.info(`Found Buy button at (${buyButton.bounds.centerX}, ${buyButton.bounds.centerY})`);
+            await adb.wait(2000);
+
+            // Tap the Buy button
             logger.info('Tapping Buy Now button...');
-            await adb.tap(500, 1370);
+            await adb.tap(buyButton.bounds.centerX, buyButton.bounds.centerY);
             await adb.wait(11000);
 
             logger.info('Tapping Address Selection...');
