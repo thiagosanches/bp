@@ -36,6 +36,7 @@ class MercadoLivreHandler {
             await adb.tap(540, 100);
             await adb.wait(2000);
 
+            // PLEASE REFACTOR THIS MONSTRUOSITY LATER
             await adb.arrowDown();
             await adb.arrowDown();
             await adb.arrowDown();
@@ -51,7 +52,7 @@ class MercadoLivreHandler {
             logger.info('Scrolling down to find the buy button...');
             await adb.wait(5000);
 
-            await adb.tap(500, 1230);
+            await adb.tap(500, 1880);
             await adb.wait(5000);
 
             await adb.tap(500, 550);
