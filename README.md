@@ -36,9 +36,9 @@ To access the web interface, simply navigate to http://localhost:3000 after star
 - AliExpress (NEEDS UPDATE)
 - MercadoLivre
 
-## Quick Start
+## Quick Start (Local Development)
 
-**Prerequisites:** Node.js (v22+) and Chrome
+**Prerequisites:** Node.js (v22+)
 
 ```bash
 # Clone and setup
@@ -51,6 +51,26 @@ npm start
 
 # Make a purchase
 curl http://localhost:3000/buy/[domain]/[encoded-product-url]
+```
+
+## Docker Setup
+
+```bash
+docker build -t buypal .
+
+docker stop buypal 2>/dev/null || true
+docker rm buypal 2>/dev/null || true
+docker run -d \
+  --privileged \
+  -v /dev/bus/usb:/dev/bus/usb \
+  --env-file .env \
+  --user root \
+  -p 3000:3000 \
+  --name buypal \
+  buypal
+
+# Perform the first ADB device check and accept it on your Android device!!!
+docker exec buypal adb devices
 ```
 
 ## Security & Privacy
