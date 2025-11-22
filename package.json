@@ -32,6 +32,7 @@
     "body-parser": "^2.2.0",
     "dotenv": "^17.1.0",
     "express": "^5.1.0",
+    "fast-xml-parser": "^4.5.0",
     "luxon": "^3.7.2",
     "winston": "^3.17.0"
   },
