@@ -141,7 +141,7 @@ logger.info('Starting main application...');
 
                 if (autoBuyEnabled) {
                     scheduleAutoPurchase(index, delayMs);
-                    logger.info(`URL added with ${randomMinutes} minute timer: ${url}`);
+                    logger.info(`URL added with timer: ${url}`);
                     res.json({
                         success: true,
                         message: 'URL added successfully',
