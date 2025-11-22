@@ -44,9 +44,12 @@ To access the web interface, simply navigate to http://localhost:3000 after star
 # Clone and setup
 git clone https://github.com/thiagosanches/buypal.git
 cd buypal
+
+# Install dependencies
 npm install
 cp .env.example .env  # Configure with your credentials
 
+# Start the server
 npm start
 
 # Make a purchase
@@ -56,10 +59,17 @@ curl http://localhost:3000/buy/[domain]/[encoded-product-url]
 ## Docker Setup
 
 ```bash
+# Build docker image
 docker build -t buypal .
 
+# Let's clean up (if needed)
 docker stop buypal 2>/dev/null || true
 docker rm buypal 2>/dev/null || true
+
+# Run the docker container with USB access
+# root is required for ADB to access USB devices
+# Maybe we can put some non-root user in the future
+# with group permissions configured properly
 docker run -d \
   --privileged \
   -v /dev/bus/usb:/dev/bus/usb \

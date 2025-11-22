@@ -63,8 +63,8 @@ class MercadoLivreHandler {
             await adb.wait(11000);
 
             logger.info('Tapping Confirm Purchase button...');
-            //await adb.tap(500, 850);
-            //await adb.wait(8000);
+            await adb.tap(500, 850);
+            await adb.wait(8000);
             await adb.takeScreenshot(`mercadolivre-item-${DateTime.now().toMillis()}.png`);
             logger.info('Item purchase process completed on MercadoLivre');
             return true;
