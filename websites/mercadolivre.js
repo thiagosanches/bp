@@ -80,8 +80,8 @@ class MercadoLivreHandler {
             const insuranceOption = await adb.findElementByText('12 meses de garantia estendida', { caseInsensitive: true });
             
             if (insuranceOption) {
-                logger.info(`Found insurance option at (${seguroOption.bounds.centerX}, ${seguroOption.bounds.centerY})`);
-                await adb.tap(seguroOption.bounds.centerX, seguroOption.bounds.centerY);
+                logger.info(`Found insurance option at (${insuranceOption.bounds.centerX}, ${insuranceOption.bounds.centerY})`);
+                await adb.tap(insuranceOption.bounds.centerX, insuranceOption.bounds.centerY);
                 await adb.wait(2000);
                 const insuranceButton = await adb.findElementByText('Adicionar', { caseInsensitive: true });
                 await adb.tap(insuranceButton.bounds.centerX, insuranceButton.bounds.centerY);
