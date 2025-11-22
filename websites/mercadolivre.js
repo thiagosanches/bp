@@ -26,15 +26,32 @@ class MercadoLivreHandler {
 
         try {
             await adb.autoConnect();
-            logger.info('🌐 Opening MercadoLivre URL...', item);
+            await adb.forceStop('com.mercadolibre');
+            await adb.wait(5000);
+            logger.info('Launching MercadoLivre app...');
+            logger.info('Opening MercadoLivre URL...', item);
             await adb.openUrl(item);
+            await adb.wait(20000);
+
+            await adb.tap(540, 100);
+            await adb.wait(2000);
+
+            await adb.arrowDown();
+            await adb.arrowDown();
+            await adb.arrowDown();
+            await adb.arrowDown();
+            await adb.arrowDown();
+            await adb.arrowDown();
+            await adb.arrowDown();
+            await adb.arrowDown();
+            await adb.arrowDown();
+            await adb.arrowDown();
+            await adb.arrowDown();
+            await adb.arrowDown();
+            logger.info('Scrolling down to find the buy button...');
             await adb.wait(5000);
 
-            await adb.tap(1, 1);
-            await adb.swipe(500, 1000, 500, 200, 300);
-            await adb.wait(5000);
-
-            await adb.tap(500, 1011);
+            await adb.tap(500, 1230);
             await adb.wait(5000);
 
             await adb.tap(500, 550);

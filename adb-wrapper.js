@@ -332,6 +332,15 @@ class ADBWrapper extends EventEmitter {
     }
 
     // Key events
+
+    /**
+     * Simulates pressing the back button
+     * @returns {Promise<string>}
+     */
+    async arrowDown() {
+        return this.executeShell('input keyevent KEYCODE_DPAD_DOWN');
+    }
+
     /**
      * Simulates pressing the back button
      * @returns {Promise<string>}
