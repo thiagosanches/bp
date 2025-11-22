@@ -65,7 +65,7 @@ logger.info('Starting main application...');
                 clearTimeout(activeTimers[index]);
             }
 
-            logger.info(`Scheduling purchase for URL index ${index} in ${Math.ceil(delayMs / 60000)} minutes`);
+            logger.info(`Scheduling purchase for URL index ${index}`);
 
             activeTimers[index] = setTimeout(async () => {
                 await triggerPurchase(index);
