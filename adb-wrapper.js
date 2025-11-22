@@ -4,6 +4,7 @@ const { promisify } = require('util');
 const EventEmitter = require('events');
 const fs = require('fs').promises;
 const path = require('path');
+const { XMLParser } = require('fast-xml-parser');
 
 const execAsync = promisify(exec);
 
@@ -500,6 +501,175 @@ class ADBWrapper extends EventEmitter {
             .filter(line => line.startsWith('package:'))
             .map(line => line.replace('package:', '').trim())
             .filter(Boolean);
+    }
+
+    // UI Automation Methods
+
+    /**
+     * Dumps the current UI hierarchy as XML
+     * @returns {Promise<string>} XML content of UI hierarchy
+     */
+    async dumpUI() {
+        try {
+            await this.executeShell('uiautomator dump');
+            const xml = await this.executeShell('cat /sdcard/window_dump.xml');
+            return xml;
+        } catch (error) {
+            throw new ADBError('Failed to dump UI hierarchy', 'uiautomator dump', error);
+        }
+    }
+
+    /**
+     * Parse UI XML and extract all nodes with their attributes
+     * @param {string} xml - XML string from UI dump
+     * @returns {Array} Array of node objects with attributes and bounds
+     */
+    parseUINodes(xml) {
+        const parser = new XMLParser({
+            ignoreAttributes: false,
+            attributeNamePrefix: '',
+            parseAttributeValue: false
+        });
+
+        try {
+            const result = parser.parse(xml);
+            const nodes = [];
+
+            const extractNodes = (obj) => {
+                if (!obj) return;
+                if (obj.node) {
+                    if (Array.isArray(obj.node)) {
+                        obj.node.forEach(node => {
+                            nodes.push(node);
+                            extractNodes(node);
+                        });
+                    } else {
+                        nodes.push(obj.node);
+                        extractNodes(obj.node);
+                    }
+                }
+            };
+
+            extractNodes(result);
+            return nodes;
+        } catch (error) {
+            throw new Error(`Failed to parse UI XML: ${error.message}`);
+        }
+    }
+
+    /**
+     * Parse bounds string to coordinates
+     * @param {string} bounds - Bounds string like "[0,100][1080,200]"
+     * @returns {Object} {left, top, right, bottom, centerX, centerY}
+     */
+    parseBounds(bounds) {
+        if (!bounds) return null;
+        const match = bounds.match(/\[(\d+),(\d+)\]\[(\d+),(\d+)\]/);
+        if (!match) return null;
+        const left = parseInt(match[1]);
+        const top = parseInt(match[2]);
+        const right = parseInt(match[3]);
+        const bottom = parseInt(match[4]);
+        return {
+            left, top, right, bottom,
+            centerX: Math.floor((left + right) / 2),
+            centerY: Math.floor((top + bottom) / 2),
+            width: right - left,
+            height: bottom - top
+        };
+    }
+
+    /**
+     * Find element by text
+     * @param {string} text - Text to search for
+     * @param {Object} options - Search options
+     * @returns {Promise<Object|null>} Element with bounds or null
+     */
+    async findElementByText(text, options = {}) {
+        const { exact = false, caseInsensitive = true } = options;
+        const xml = await this.dumpUI();
+        const nodes = this.parseUINodes(xml);
+        const searchText = caseInsensitive ? text.toLowerCase() : text;
+
+        for (const node of nodes) {
+            const nodeText = node.text || node['content-desc'] || '';
+            const compareText = caseInsensitive ? nodeText.toLowerCase() : nodeText;
+            const matches = exact ? compareText === searchText : compareText.includes(searchText);
+
+            if (matches && node.bounds) {
+                const bounds = this.parseBounds(node.bounds);
+                if (bounds) {
+                    return { text: nodeText, bounds, node };
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find element by resource ID
+     * @param {string} resourceId - Resource ID to search for
+     * @returns {Promise<Object|null>} Element with bounds or null
+     */
+    async findElementById(resourceId) {
+        const xml = await this.dumpUI();
+        const nodes = this.parseUINodes(xml);
+
+        for (const node of nodes) {
+            if (node['resource-id'] === resourceId && node.bounds) {
+                const bounds = this.parseBounds(node.bounds);
+                if (bounds) {
+                    return { id: resourceId, bounds, node };
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find and tap element by text
+     * @param {string} text - Text to search for
+     * @param {Object} options - Search options
+     * @returns {Promise<boolean>} True if element found and tapped
+     */
+    async tapElementByText(text, options = {}) {
+        const element = await this.findElementByText(text, options);
+        if (element) {
+            await this.tap(element.bounds.centerX, element.bounds.centerY);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check if element with text is visible
+     * @param {string} text - Text to search for
+     * @param {Object} options - Search options
+     * @returns {Promise<boolean>} True if element is visible
+     */
+    async isElementVisible(text, options = {}) {
+        const element = await this.findElementByText(text, options);
+        return element !== null;
+    }
+
+    /**
+     * Scroll until element with text is visible (with while-like loop)
+     * @param {string} text - Text to search for
+     * @param {Object} options - Options
+     * @returns {Promise<Object|null>} Element if found, null otherwise
+     */
+    async scrollToElement(text, options = {}) {
+        const { maxAttempts = 5, scrollDuration = 300 } = options;
+
+        for (let i = 0; i < maxAttempts; i++) {
+            const element = await this.findElementByText(text, options);
+            if (element) {
+                return element;
+            }
+            await this.scrollDown(scrollDuration);
+            await this.wait(1000);
+        }
+        return null;
     }
 }
 

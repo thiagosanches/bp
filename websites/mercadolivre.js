@@ -54,7 +54,6 @@ class MercadoLivreHandler {
             logger.info(`Found Buy button at (${buyButton.bounds.centerX}, ${buyButton.bounds.centerY})`);
             await adb.wait(2000);
 
-            // Tap the Buy button
             logger.info('Tapping Buy Now button...');
             await adb.tap(buyButton.bounds.centerX, buyButton.bounds.centerY);
             await adb.wait(11000);
