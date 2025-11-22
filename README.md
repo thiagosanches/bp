@@ -1,5 +1,7 @@
 # BuyPal
 
+![Tests](https://github.com/Guara-Tech/bp/actions/workflows/test.yml/badge.svg)
+
 Experience stress-free online shopping with our automation tool. Simply connect your Android device to the USB port, and let BuyPal take care of everything else!
 
 >[!TIP]
