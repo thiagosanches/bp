@@ -26,9 +26,11 @@ class MercadoLivreHandler {
 
         try {
             await adb.autoConnect();
+            await adb.wait(5000);
+
             await adb.forceStop('com.mercadolibre');
             await adb.wait(5000);
-            logger.info('Launching MercadoLivre app...');
+
             logger.info('Opening MercadoLivre URL...', item);
             await adb.openUrl(item);
             await adb.wait(20000);
@@ -36,44 +38,40 @@ class MercadoLivreHandler {
             await adb.tap(540, 100);
             await adb.wait(2000);
 
-            // PLEASE REFACTOR THIS MONSTRUOSITY LATER
-            await adb.arrowDown();
-            await adb.arrowDown();
-            await adb.arrowDown();
-            await adb.arrowDown();
-            await adb.arrowDown();
-            await adb.arrowDown();
-            await adb.arrowDown();
-            await adb.arrowDown();
-            await adb.arrowDown();
-            await adb.arrowDown();
-            await adb.arrowDown();
-            await adb.arrowDown();
-            logger.info('Scrolling down to find the buy button...');
+            logger.info('Scrolling down to put button in view...');
+            await adb.scrollDown(900);
             await adb.wait(5000);
 
-            await adb.tap(500, 1880);
+            logger.info('Tapping Buy Now button...');
+            await adb.tap(500, 1370);
             await adb.wait(5000);
 
+            logger.info('Tapping Address Selection...');
             await adb.tap(500, 550);
             await adb.wait(5000);
 
+            logger.info('Tapping Continue button...');
             await adb.tap(500, 2050);
             await adb.wait(8000);
 
+            logger.info('Tapping Credit Card Selection...');
             await adb.tap(500, 1080);
-            await adb.wait(3000);
+            await adb.wait(5000);
 
+            logger.info('Tapping 1x Installment option...');
             await adb.tap(500, 640);
             await adb.wait(3000);
 
-            await adb.tap(500, 850);
-            await adb.wait(8000);
+            logger.info('Tapping Confirm Purchase button...');
+            //await adb.tap(500, 850);
+            //await adb.wait(8000);
             await adb.takeScreenshot(`mercadolivre-item-${DateTime.now().toMillis()}.png`);
             logger.info('Item purchase process completed on MercadoLivre');
+            return true;
         }
         catch (error) {
             logger.error(`Failed to buy item: ${error.message}`);
+            return false;
         }
 
     }

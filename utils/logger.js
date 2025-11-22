@@ -2,7 +2,7 @@ const { createLogger, format, transports } = require('winston');
 const timezoned = () => { return new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }); };
 
 const consoleFormat = format.combine(
-    format.label({ label: "no-repeat" }),
+    format.label({ label: "buypal" }),
     format.colorize(),
     format.timestamp({ format: timezoned }),
     format.align(),
