@@ -64,7 +64,7 @@ class MercadoLivreHandler {
             });
 
             if (!buyButton) {
-                logger.error('Could not find Buy button after scrolling');
+                logger.error('Could not find Buy button after scrolling'); 
                 throw new Error('Buy button not found');
             }
 
