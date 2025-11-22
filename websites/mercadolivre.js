@@ -36,31 +36,31 @@ class MercadoLivreHandler {
             await adb.wait(20000);
 
             await adb.tap(540, 100);
-            await adb.wait(2000);
+            await adb.wait(11000);
 
             logger.info('Scrolling down to put button in view...');
             await adb.scrollDown(900);
-            await adb.wait(5000);
+            await adb.wait(11000);
 
             logger.info('Tapping Buy Now button...');
             await adb.tap(500, 1370);
-            await adb.wait(5000);
+            await adb.wait(11000);
 
             logger.info('Tapping Address Selection...');
             await adb.tap(500, 550);
-            await adb.wait(5000);
+            await adb.wait(11000);
 
             logger.info('Tapping Continue button...');
             await adb.tap(500, 2050);
-            await adb.wait(8000);
+            await adb.wait(11000);
 
             logger.info('Tapping Credit Card Selection...');
             await adb.tap(500, 1080);
-            await adb.wait(5000);
+            await adb.wait(11000);
 
             logger.info('Tapping 1x Installment option...');
             await adb.tap(500, 640);
-            await adb.wait(3000);
+            await adb.wait(11000);
 
             logger.info('Tapping Confirm Purchase button...');
             //await adb.tap(500, 850);
