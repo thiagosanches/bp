@@ -71,6 +71,8 @@ docker run -d \
 
 # Perform the first ADB device check and accept it on your Android device!!!
 docker exec buypal adb devices
+
+# Now you can access the web interface at http://localhost:3000
 ```
 
 ## Security & Privacy
