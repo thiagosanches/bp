@@ -362,7 +362,7 @@ describe('ADBWrapper', () => {
             await adb.swipe(100, 200, 300, 400, 500);
             
             expect(mockExec).toHaveBeenCalledWith(
-                expect.stringContaining('input swipe 100 200 300 400 500'),
+                expect.stringContaining('input touchscreen swipe 100 200 300 400 500'),
                 expect.any(Object),
                 expect.any(Function)
             );
@@ -403,7 +403,7 @@ describe('ADBWrapper', () => {
             await adb.scrollDown();
             
             expect(mockExec).toHaveBeenCalledWith(
-                expect.stringContaining('input swipe 540 1536 540 384'),
+                expect.stringContaining('input touchscreen swipe 540 1536 540 384'),
                 expect.any(Object),
                 expect.any(Function)
             );
@@ -413,7 +413,7 @@ describe('ADBWrapper', () => {
             await adb.scrollUp();
             
             expect(mockExec).toHaveBeenCalledWith(
-                expect.stringContaining('input swipe 540 384 540 1536'),
+                expect.stringContaining('input touchscreen swipe 540 384 540 1536'),
                 expect.any(Object),
                 expect.any(Function)
             );
