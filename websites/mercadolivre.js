@@ -48,6 +48,7 @@ class MercadoLivreHandler {
             }
 
             if (voltageOption) {
+                await adb.tap(540, 100);
                 logger.info(`Found voltage option at (${voltageOption.bounds.centerX}, ${voltageOption.bounds.centerY})`);
                 await adb.tap(voltageOption.bounds.centerX, voltageOption.bounds.centerY);
                 await adb.wait(2000);
@@ -73,6 +74,21 @@ class MercadoLivreHandler {
             logger.info('Tapping Buy Now button...');
             await adb.tap(buyButton.bounds.centerX, buyButton.bounds.centerY);
             await adb.wait(11000);
+
+            // Check for insurance option
+            logger.info('Checking for insurance option ...');
+            const insuranceOption = await adb.findElementByText('12 meses de garantia estendida', { caseInsensitive: true });
+            
+            if (insuranceOption) {
+                logger.info(`Found insurance option at (${seguroOption.bounds.centerX}, ${seguroOption.bounds.centerY})`);
+                await adb.tap(seguroOption.bounds.centerX, seguroOption.bounds.centerY);
+                await adb.wait(2000);
+                const insuranceButton = await adb.findElementByText('Adicionar', { caseInsensitive: true });
+                await adb.tap(insuranceButton.bounds.centerX, insuranceButton.bounds.centerY);
+                await adb.wait(2000);
+            } else {
+                logger.info('No insurance option found');
+            }
 
             logger.info('Tapping Address Selection...');
             await adb.tap(540, 550);
