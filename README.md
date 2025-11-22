@@ -66,6 +66,7 @@ docker run -d \
   --env-file .env \
   --user root \
   -p 3000:3000 \
+  --restart unless-stopped \
   --name buypal \
   buypal
 
