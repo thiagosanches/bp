@@ -42,7 +42,7 @@ class MercadoLivreHandler {
             // Try to select 127V or 127/220V voltage if available
             logger.info('Checking for voltage option (127V/127-220V)...');
             let voltageOption = await adb.findElementByText('127/220', { caseInsensitive: true });
-            
+
             if (!voltageOption) {
                 voltageOption = await adb.findElementByText('127', { caseInsensitive: true });
             }
@@ -78,12 +78,13 @@ class MercadoLivreHandler {
             // Check for insurance option
             logger.info('Checking for insurance option ...');
             const insuranceOption = await adb.findElementByText('12 meses de garantia estendida', { caseInsensitive: true });
-            
+
             if (insuranceOption) {
                 logger.info(`Found insurance option at (${insuranceOption.bounds.centerX}, ${insuranceOption.bounds.centerY})`);
                 await adb.tap(insuranceOption.bounds.centerX, insuranceOption.bounds.centerY);
                 await adb.wait(2000);
                 const insuranceButton = await adb.findElementByText('Adicionar', { caseInsensitive: true });
+                logger.info(`Tapping Add Insurance button at (${insuranceButton.bounds.centerX}, ${insuranceButton.bounds.centerY})`);
                 await adb.tap(insuranceButton.bounds.centerX, insuranceButton.bounds.centerY);
                 await adb.wait(2000);
             } else {
