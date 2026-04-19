@@ -220,3 +220,6 @@ __marimo__/
 # Google chrome user-data
 user-data/
 data/
+
+# Nohup
+nohup.out
