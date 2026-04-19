@@ -1,0 +1,16 @@
+[Unit]
+Description=BuyPal Browser Session
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+ExecStartPre=/bin/sleep 5m
+WorkingDirectory=/home/thiago/r/github/bp
+ExecStart=/bin/bash ./init.sh
+
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=xdg-desktop-autostart.target
+
