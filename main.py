@@ -24,10 +24,6 @@ app = FastAPI()
 router = APIRouter()
 
 # Global state
-_browser: Optional[Browser] = None
-_browser_lock = asyncio.Lock()
-_browser_last_health_check: Optional[datetime] = None
-_browser_health_check_interval = 30  # seconds
 task_queue: asyncio.Queue = asyncio.Queue()
 tasks_status: Dict[str, dict] = {}
 urls_storage: List[dict] = []
@@ -44,14 +40,14 @@ class OrderRequest(BaseModel):
     url: str
     task: str
     model: str = "google/gemini-2.5-flash-lite"
-    browser_address: str = "http://"
+    browser_address: str = "http://127.0.0.1:9222"
 
 
 class URLItem(BaseModel):
     url: str
     model: str = "google/gemini-2.5-flash-lite"
     prompt: str = "Perform the task on the given URL"
-    browser_address: str = "http://"
+    browser_address: str = "http://127.0.0.1:9222"
 
 
 def get_llm(model: str = None):
@@ -77,60 +73,26 @@ async def check_browser_health(browser: Browser) -> bool:
         # Try to get browser info via CDP
         cdp_url = browser.cdp_url if hasattr(browser, 'cdp_url') else os.environ.get(
             "CDP_URL", "http://127.0.0.1:9222")
+
+        if not cdp_url or cdp_url == "http://":
+            logger.warning("Invalid CDP URL for health check")
+            return False
+
         import aiohttp
 
         # Test CDP connection by hitting /json/version
-        test_url = cdp_url.replace(
-            'http://', 'http://').rstrip('/') + '/json/version'
+        test_url = cdp_url.rstrip('/') + '/json/version'
         async with aiohttp.ClientSession() as session:
             async with session.get(test_url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
                 if resp.status == 200:
                     return True
         return False
+    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+        logger.warning(f"Browser health check failed - connection error: {e}")
+        return False
     except Exception as e:
         logger.warning(f"Browser health check failed: {e}")
         return False
-
-
-async def get_browser(browser_address: str) -> Browser:
-    """Get or create persistent browser instance with health check"""
-    global _browser, _browser_last_health_check
-
-    async with _browser_lock:
-        now = datetime.utcnow()
-
-        # Check if we need to verify health
-        should_check = (
-            _browser is None or
-            _browser_last_health_check is None or
-            (now - _browser_last_health_check).total_seconds() > _browser_health_check_interval
-        )
-
-        if should_check and _browser is not None:
-            logger.info("Running browser health check")
-            is_healthy = await check_browser_health(_browser)
-
-            if not is_healthy:
-                logger.warning("Browser unhealthy, recreating connection")
-                _browser = None
-            else:
-                logger.info("Browser healthy")
-                _browser_last_health_check = now
-
-        # Create new browser if needed
-        if _browser is None:
-            logger.info("Creating persistent browser instance")
-            cdp_url = browser_address
-            try:
-                _browser = Browser(cdp_url=cdp_url)
-                _browser_last_health_check = now
-                logger.info(f"Browser connected to {cdp_url}")
-            except Exception as e:
-                logger.error(f"Failed to create browser: {e}")
-                raise HTTPException(
-                    status_code=503, detail=f"Browser unavailable: {str(e)}")
-
-        return _browser
 
 
 async def process_task_queue():
@@ -161,10 +123,9 @@ async def perform_order(task_id: str, payload: OrderRequest):
 
     while retry_count <= max_retries:
         try:
-            browser = await get_browser(payload.browser_address)
+            browser = Browser(
+                cdp_url=payload.browser_address or "http://127.0.0.1:9222")
             llm = get_llm(model=payload.model)
-
-            
 
             agent = Agent(
                 task=task_prompt,
@@ -193,11 +154,6 @@ async def perform_order(task_id: str, payload: OrderRequest):
                 logger.warning(
                     f"[{task_id}] Browser error (attempt {retry_count}/{max_retries}): {e}")
 
-                # Force browser reconnection
-                global _browser
-                async with _browser_lock:
-                    _browser = None
-
                 # Exponential backoff: 2s, 4s
                 await asyncio.sleep(2 ** retry_count)
                 continue
@@ -225,6 +181,11 @@ async def periodic_health_check():
                     logger.warning(
                         "Periodic health check failed, marking browser for reconnection")
                     async with _browser_lock:
+                        try:
+                            await _browser.stop()
+                        except Exception as stop_error:
+                            logger.warning(
+                                f"Error stopping browser: {stop_error}")
                         _browser = None
         except Exception as e:
             logger.error(f"Periodic health check error: {e}")
@@ -244,7 +205,11 @@ async def shutdown_event():
     global _browser
     if _browser:
         logger.info("Closing browser instance")
-        # Don't call stop() - let external Chrome keep running
+        try:
+            await _browser.stop()
+            logger.info("Browser stopped successfully")
+        except Exception as e:
+            logger.warning(f"Error stopping browser on shutdown: {e}")
     logger.info("Application shutdown")
 
 
@@ -281,17 +246,8 @@ async def list_tasks():
 @app.get("/health")
 async def health_check():
     """Health check endpoint for monitoring"""
-    browser_status = "unknown"
-
-    if _browser is not None:
-        is_healthy = await check_browser_health(_browser)
-        browser_status = "healthy" if is_healthy else "unhealthy"
-    else:
-        browser_status = "not_connected"
-
     return {
         "status": "ok",
-        "browser": browser_status,
         "queue_size": task_queue.qsize(),
         "active_tasks": len([t for t in tasks_status.values() if t["status"] == TaskStatus.RUNNING]),
         "total_tasks": len(tasks_status)
