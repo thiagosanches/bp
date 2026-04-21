@@ -116,12 +116,26 @@
 
                 <div class="mb-3">
                     <label for="modelInput" class="form-label">LLM Model:</label>
-                    <input type="text" class="form-control" id="modelInput"
-                        value="google/gemini-2.5-flash-lite" 
+                    <input type="text" class="form-control" id="modelInput" value="google/gemini-2.5-flash-lite"
                         placeholder="e.g., google/gemini-2.5-flash-lite, openai/gpt-4o">
-                    <small class="text-muted">Default: google/gemini-2.5-flash-lite. You can use any OpenRouter model.</small>
+                    <small class="text-muted">Default: google/gemini-2.5-flash-lite. You can use any OpenRouter
+                        model.</small>
                 </div>
 
+                <div class="mb-3">
+                    <label for="promptInput" class="form-label">Prompt:</label>
+                    <textarea class="form-control" id="promptInput" rows="6" style="font-size: 0.7em;">
+
+                    </textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="browserAddressInput" class="form-label">Browser Live Session:</label>
+                    <input type="text" class="form-control" id="browserAddressInput" value="http://192.168.0.3:9222"
+                        placeholder="e.g., http://192.168.0.3:9222">
+                    <small class="text-muted">Default: http://192.168.0.3:9222. You can use any live browser with an
+                        already logged session and CDP enabled.</small>
+                </div>
             </div>
         </div>
 
@@ -146,10 +160,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             let urls = [];
-            
+
             // Load URLs from server
             loadUrls();
-            
+
             // Refresh URL list every 30 seconds to show updated status
             setInterval(loadUrls, 30000);
 
@@ -166,6 +180,8 @@
                 const modelInput = document.getElementById('modelInput');
                 const url = urlInput.value.trim();
                 const model = modelInput.value.trim() || 'google/gemini-2.5-flash-lite';
+                const prompt = document.getElementById('promptInput').value.trim();
+                const browserAddress = document.getElementById('browserAddressInput').value.trim();
 
                 if (!url) {
                     showStatus('Please enter a valid URL', 'danger');
@@ -176,21 +192,21 @@
                 fetch('/urls', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url, model: model })
+                    body: JSON.stringify({ url: url, model: model, prompt: prompt, browser_address: browserAddress })
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showStatus(data.message, 'success');
-                        urlInput.value = '';
-                        loadUrls();
-                    } else {
-                        showStatus(data.message, 'danger');
-                    }
-                })
-                .catch(error => {
-                    showStatus(`Error: ${error.message}`, 'danger');
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showStatus(data.message, 'success');
+                            urlInput.value = '';
+                            loadUrls();
+                        } else {
+                            showStatus(data.message, 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        showStatus(`Error: ${error.message}`, 'danger');
+                    });
             });
 
             // Load URLs from server
@@ -227,7 +243,7 @@
                         const delayMinutes = item.delayMinutes;
                         const status = item.status;
                         const model = item.model || 'google/gemini-2.5-flash-lite';
-                        
+
                         const urlObj = new URL(url);
 
                         const li = document.createElement('li');
@@ -273,7 +289,7 @@
                         if (status && status !== 'ready' && status !== 'pending') {
                             const statusInfo = document.createElement('div');
                             statusInfo.className = 'small mt-1';
-                            
+
                             let statusBadge = '';
                             if (status === 'purchased') {
                                 statusBadge = '<span class="badge bg-success"><i class="bi bi-check-circle"></i> Purchased</span>';
@@ -282,7 +298,7 @@
                             } else if (status === 'no-handler') {
                                 statusBadge = '<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> No Handler</span>';
                             }
-                            
+
                             statusInfo.innerHTML = statusBadge;
                             itemContent.appendChild(statusInfo);
                         }
@@ -311,30 +327,28 @@
                                 });
                         });
 
-                        // Add buy now button for pending items
-                        if (triggerTime && status !== 'purchased' && status !== 'error' && status !== 'failed') {
-                            const buyBtn = document.createElement('button');
-                            buyBtn.className = 'btn btn-sm btn-success me-2';
-                            buyBtn.style.flexShrink = '0';
-                            buyBtn.innerHTML = '<i class="bi bi-cart-check"></i>';
-                            buyBtn.title = 'Buy now (skip timer)';
-                            buyBtn.addEventListener('click', function () {
-                                fetch(`/urls/${index}/buy`, { method: 'POST' })
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        if (data.success) {
-                                            showStatus(data.message, 'info');
-                                            loadUrls();
-                                        } else {
-                                            showStatus(data.message, 'danger');
-                                        }
-                                    })
-                                    .catch(error => {
-                                        showStatus(`Error: ${error.message}`, 'danger');
-                                    });
-                            });
-                            li.appendChild(buyBtn);
-                        }
+                        // Always show buy now button for debugging
+                        const buyBtn = document.createElement('button');
+                        buyBtn.className = 'btn btn-sm btn-success me-2';
+                        buyBtn.style.flexShrink = '0';
+                        buyBtn.innerHTML = '<i class="bi bi-cart-check"></i>';
+                        buyBtn.title = 'Buy now (debug: always visible)';
+                        buyBtn.addEventListener('click', function () {
+                            fetch(`/urls/${index}/buy`, { method: 'POST' })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        showStatus(data.message, 'info');
+                                        loadUrls();
+                                    } else {
+                                        showStatus(data.message, 'danger');
+                                    }
+                                })
+                                .catch(error => {
+                                    showStatus(`Error: ${error.message}`, 'danger');
+                                });
+                        });
+                        li.appendChild(buyBtn);
 
                         li.appendChild(deleteBtn);
                         urlList.appendChild(li);
