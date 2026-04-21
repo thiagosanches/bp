@@ -1,9 +1,7 @@
 services:
   bp:
     build: .
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./data:/app/data
     restart: unless-stopped
     network_mode: host
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}

@@ -168,34 +168,10 @@ async def perform_order(task_id: str, payload: OrderRequest):
             raise
 
 
-async def periodic_health_check():
-    """Periodic browser health check"""
-    global _browser
-
-    while True:
-        await asyncio.sleep(60)  # Check every 60 seconds
-        try:
-            if _browser is not None:
-                is_healthy = await check_browser_health(_browser)
-                if not is_healthy:
-                    logger.warning(
-                        "Periodic health check failed, marking browser for reconnection")
-                    async with _browser_lock:
-                        try:
-                            await _browser.stop()
-                        except Exception as stop_error:
-                            logger.warning(
-                                f"Error stopping browser: {stop_error}")
-                        _browser = None
-        except Exception as e:
-            logger.error(f"Periodic health check error: {e}")
-
-
 @app.on_event("startup")
 async def startup_event():
     """Start background task queue worker and health checks"""
     asyncio.create_task(process_task_queue())
-    asyncio.create_task(periodic_health_check())
     logger.info("Application started")
 
 
