@@ -11,7 +11,8 @@ Experience stress-free online shopping with our automation tool. Simply connect 
 
 BuyPal automates online purchases to reduce anxiety and decision fatigue. It handles the entire checkout process for you, from product selection to payment confirmation.
 
-![alt text](pawelzmarlak-2025-07-09T20_38_14.262Z.png)
+<img width="849" height="952" alt="image" src="https://github.com/user-attachments/assets/c49dc6ea-87a7-43bf-a56f-2212208e0f4f" />
+
 
 ### Why BuyPal?
 
