@@ -55,7 +55,7 @@ def get_llm():
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY not set")
     return ChatOpenAI(
-        model=os.environ.get("LLM_MODEL", "openai/gpt-4o"),
+        model=os.environ.get("LLM_MODEL", "google/gemini-2.5-flash-lite"),
         base_url=os.environ.get(
             "LLM_BASE_URL", "https://openrouter.ai/api/v1"),
         api_key=api_key,
