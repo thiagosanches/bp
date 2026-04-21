@@ -44,18 +44,24 @@ class OrderRequest(BaseModel):
     delivery_address: str = None
     payment_method: str = None
     additional_info: str = None
+    model: str = "google/gemini-2.5-flash-lite"
 
 
 class URLItem(BaseModel):
     url: str
+    model: str = "google/gemini-2.5-flash-lite"
 
 
-def get_llm():
+def get_llm(model: str = None):
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY not set")
+    
+    # Priority: parameter > env var > default
+    selected_model = model or os.environ.get("LLM_MODEL", "google/gemini-2.5-flash-lite")
+    
     return ChatOpenAI(
-        model=os.environ.get("LLM_MODEL", "google/gemini-2.5-flash-lite"),
+        model=selected_model,
         base_url=os.environ.get(
             "LLM_BASE_URL", "https://openrouter.ai/api/v1"),
         api_key=api_key,
@@ -91,11 +97,11 @@ async def perform_order(task_id: str, payload: OrderRequest):
     tasks_status[task_id]["status"] = TaskStatus.RUNNING
     tasks_status[task_id]["started_at"] = datetime.utcnow().isoformat()
     
-    logger.info(f"[{task_id}] Starting order: {payload.url}")
+    logger.info(f"[{task_id}] Starting order: {payload.url} with model: {payload.model}")
     
     try:
         browser = await get_browser()
-        llm = get_llm()
+        llm = get_llm(model=payload.model)
 
         task_prompt = f"Perform the following action: {payload.task} on {payload.url}."
         if payload.delivery_address:
@@ -152,6 +158,7 @@ async def order(payload: OrderRequest):
         "status": TaskStatus.QUEUED,
         "url": payload.url,
         "task": payload.task,
+        "model": payload.model,
         "created_at": datetime.utcnow().isoformat()
     }
     
@@ -183,6 +190,7 @@ async def get_urls():
 async def add_url(item: URLItem):
     url_obj = {
         "url": item.url,
+        "model": item.model,
         "status": "ready",
         "triggerTime": None,
         "delayMinutes": None
@@ -207,7 +215,8 @@ async def buy_url(index: int):
     url_item = urls_storage[index]
     order = OrderRequest(
         url=url_item["url"],
-        task="Complete purchase of this product"
+        task="Complete purchase of this product",
+        model=url_item.get("model", "google/gemini-2.5-flash-lite")
     )
     
     task_id = str(uuid.uuid4())
