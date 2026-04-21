@@ -26,6 +26,8 @@ router = APIRouter()
 # Global state
 _browser: Optional[Browser] = None
 _browser_lock = asyncio.Lock()
+_browser_last_health_check: Optional[datetime] = None
+_browser_health_check_interval = 30  # seconds
 task_queue: asyncio.Queue = asyncio.Queue()
 tasks_status: Dict[str, dict] = {}
 urls_storage: List[dict] = []
@@ -68,13 +70,62 @@ def get_llm(model: str = None):
     )
 
 
+async def check_browser_health(browser: Browser) -> bool:
+    """Check if browser connection is alive"""
+    try:
+        # Try to get browser info via CDP
+        cdp_url = browser.cdp_url if hasattr(browser, 'cdp_url') else os.environ.get("CDP_URL", "http://127.0.0.1:9222")
+        import aiohttp
+        
+        # Test CDP connection by hitting /json/version
+        test_url = cdp_url.replace('http://', 'http://').rstrip('/') + '/json/version'
+        async with aiohttp.ClientSession() as session:
+            async with session.get(test_url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                if resp.status == 200:
+                    return True
+        return False
+    except Exception as e:
+        logger.warning(f"Browser health check failed: {e}")
+        return False
+
+
 async def get_browser() -> Browser:
-    """Get or create persistent browser instance"""
-    global _browser
+    """Get or create persistent browser instance with health check"""
+    global _browser, _browser_last_health_check
+    
     async with _browser_lock:
+        now = datetime.utcnow()
+        
+        # Check if we need to verify health
+        should_check = (
+            _browser is None or 
+            _browser_last_health_check is None or
+            (now - _browser_last_health_check).total_seconds() > _browser_health_check_interval
+        )
+        
+        if should_check and _browser is not None:
+            logger.info("Running browser health check")
+            is_healthy = await check_browser_health(_browser)
+            
+            if not is_healthy:
+                logger.warning("Browser unhealthy, recreating connection")
+                _browser = None
+            else:
+                logger.info("Browser healthy")
+                _browser_last_health_check = now
+        
+        # Create new browser if needed
         if _browser is None:
             logger.info("Creating persistent browser instance")
-            _browser = Browser(cdp_url=os.environ.get("CDP_URL", "http://127.0.0.1:9222"))
+            cdp_url = os.environ.get("CDP_URL", "http://127.0.0.1:9222")
+            try:
+                _browser = Browser(cdp_url=cdp_url)
+                _browser_last_health_check = now
+                logger.info(f"Browser connected to {cdp_url}")
+            except Exception as e:
+                logger.error(f"Failed to create browser: {e}")
+                raise HTTPException(status_code=503, detail=f"Browser unavailable: {str(e)}")
+        
         return _browser
 
 
@@ -99,44 +150,87 @@ async def perform_order(task_id: str, payload: OrderRequest):
     
     logger.info(f"[{task_id}] Starting order: {payload.url} with model: {payload.model}")
     
-    try:
-        browser = await get_browser()
-        llm = get_llm(model=payload.model)
+    max_retries = 2
+    retry_count = 0
+    
+    while retry_count <= max_retries:
+        try:
+            browser = await get_browser()
+            llm = get_llm(model=payload.model)
 
-        task_prompt = f"Perform the following action: {payload.task} on {payload.url}."
-        if payload.delivery_address:
-            task_prompt += f" Delivery address: {payload.delivery_address}."
-        if payload.payment_method:
-            task_prompt += f" Payment method: {payload.payment_method}."
-        if payload.additional_info:
-            task_prompt += f" Additional info: {payload.additional_info}."
-        
-        agent = Agent(
-            task=task_prompt,
-            llm=llm,
-            browser=browser,
-        )
-        
-        result = await agent.run()
-        
-        tasks_status[task_id]["status"] = TaskStatus.COMPLETED
-        tasks_status[task_id]["result"] = str(result)
-        tasks_status[task_id]["completed_at"] = datetime.utcnow().isoformat()
-        
-        logger.info(f"[{task_id}] Completed successfully")
-        
-    except Exception as e:
-        logger.error(f"[{task_id}] Failed: {e}", exc_info=True)
-        tasks_status[task_id]["status"] = TaskStatus.FAILED
-        tasks_status[task_id]["error"] = str(e)
-        tasks_status[task_id]["completed_at"] = datetime.utcnow().isoformat()
-        raise
+            task_prompt = f"Perform the following action: {payload.task} on {payload.url}."
+            if payload.delivery_address:
+                task_prompt += f" Delivery address: {payload.delivery_address}."
+            if payload.payment_method:
+                task_prompt += f" Payment method: {payload.payment_method}."
+            if payload.additional_info:
+                task_prompt += f" Additional info: {payload.additional_info}."
+            
+            agent = Agent(
+                task=task_prompt,
+                llm=llm,
+                browser=browser,
+            )
+            
+            result = await agent.run()
+            
+            tasks_status[task_id]["status"] = TaskStatus.COMPLETED
+            tasks_status[task_id]["result"] = str(result)
+            tasks_status[task_id]["completed_at"] = datetime.utcnow().isoformat()
+            
+            logger.info(f"[{task_id}] Completed successfully")
+            break  # Success, exit retry loop
+            
+        except Exception as e:
+            retry_count += 1
+            error_msg = str(e)
+            
+            # Check if it's a browser connection error
+            is_browser_error = any(keyword in error_msg.lower() for keyword in 
+                                   ['connection', 'cdp', 'websocket', 'timeout', 'refused'])
+            
+            if is_browser_error and retry_count <= max_retries:
+                logger.warning(f"[{task_id}] Browser error (attempt {retry_count}/{max_retries}): {e}")
+                
+                # Force browser reconnection
+                global _browser
+                async with _browser_lock:
+                    _browser = None
+                
+                await asyncio.sleep(2 ** retry_count)  # Exponential backoff: 2s, 4s
+                continue
+            
+            # Final failure
+            logger.error(f"[{task_id}] Failed after {retry_count} attempts: {e}", exc_info=True)
+            tasks_status[task_id]["status"] = TaskStatus.FAILED
+            tasks_status[task_id]["error"] = error_msg
+            tasks_status[task_id]["retry_count"] = retry_count
+            tasks_status[task_id]["completed_at"] = datetime.utcnow().isoformat()
+            raise
+
+
+async def periodic_health_check():
+    """Periodic browser health check"""
+    global _browser
+    
+    while True:
+        await asyncio.sleep(60)  # Check every 60 seconds
+        try:
+            if _browser is not None:
+                is_healthy = await check_browser_health(_browser)
+                if not is_healthy:
+                    logger.warning("Periodic health check failed, marking browser for reconnection")
+                    async with _browser_lock:
+                        _browser = None
+        except Exception as e:
+            logger.error(f"Periodic health check error: {e}")
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Start background task queue worker"""
+    """Start background task queue worker and health checks"""
     asyncio.create_task(process_task_queue())
+    asyncio.create_task(periodic_health_check())
     logger.info("Application started")
 
 
@@ -178,6 +272,26 @@ async def get_status(task_id: str):
 @app.get("/tasks")
 async def list_tasks():
     return {"tasks": list(tasks_status.values())}
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring"""
+    browser_status = "unknown"
+    
+    if _browser is not None:
+        is_healthy = await check_browser_health(_browser)
+        browser_status = "healthy" if is_healthy else "unhealthy"
+    else:
+        browser_status = "not_connected"
+    
+    return {
+        "status": "ok",
+        "browser": browser_status,
+        "queue_size": task_queue.qsize(),
+        "active_tasks": len([t for t in tasks_status.values() if t["status"] == TaskStatus.RUNNING]),
+        "total_tasks": len(tasks_status)
+    }
 
 
 # URL management endpoints
